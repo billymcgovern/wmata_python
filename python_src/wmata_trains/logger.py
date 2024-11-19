@@ -1,9 +1,12 @@
 import logging
 import functools
+import re
 
 from . import colors
 
 LOGGER = logging.getLogger(__name__)
+
+ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
 
 class CustomStreamFormatter(logging.Formatter):
@@ -23,9 +26,9 @@ class CustomStreamFormatter(logging.Formatter):
 class CustomFileFormatter(logging.Formatter):
     def format(self, record):
         # Customize the format of the log message here
-        fmt = '%(levelno)s: %(filename)s %(funcName)s:%(lineno)d - %(message)s'
+        fmt = f'{record.levelname}: {record.filename} {record.funcName}:{record.lineno} - {record.getMessage()}'
 
-        return fmt
+        return ansi_escape.sub('', fmt)
 
 
 def add_file_handler(path, debug=False):

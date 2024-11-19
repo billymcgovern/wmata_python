@@ -4,7 +4,7 @@ from pathlib import Path
 
 from . import LOGGER
 from .logger import add_file_handler
-from .station import get_station_list
+from .station import get_station_list, get_station_info
 
 
 parser = argparse.ArgumentParser(prog='WMATA trains')
@@ -36,3 +36,8 @@ LOGGER.debug(pargs)
 
 if 'list-stations' == pargs.task:
     LOGGER.print(get_station_list(pargs.api_key))
+elif 'station-info' == pargs.task:
+    station = get_station_info(pargs.api_key, pargs.station_code)
+    LOGGER.print(station)
+    if pargs.next_trains:
+        LOGGER.print(station.next_trains(pargs.api_key))

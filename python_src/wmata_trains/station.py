@@ -64,7 +64,7 @@ class NextTrainList(object):
     next_trains: []
 
     def __iter__(self):
-        return list(self.next_trains)
+        return iter(self.next_trains)
 
     def __str__(self):
         table = Table(show_header=True)
@@ -89,6 +89,24 @@ class NextTrainList(object):
             next_trains.append(NextTrain(**train))
 
         return cls(next_trains)
+
+    @property
+    def hass_sensor_dict(self):
+        next_trains = self.next_trains[:]
+        next_trains.sort(key=lambda x: x.DestinationName)
+
+        train_dict_inner = {}
+        for train in next_trains:
+            if not train_dict_inner.get(train.DestinationName, ''):
+                train_dict_inner[train.DestinationName] = train.Min
+            else:
+                train_dict_inner[train.DestinationName] = f'{train_dict_inner[train.DestinationName]},{train.Min}'
+
+        train_dict_outter = {}
+        for idx, (key, val) in enumerate(train_dict_inner.items()):
+            train_dict_outter[f'destination_{idx}'] = f'{key}: {val}'
+
+        return train_dict_outter
 
 
 @dataclasses.dataclass

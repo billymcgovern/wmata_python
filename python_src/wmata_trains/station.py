@@ -1,28 +1,31 @@
 import dataclasses
 import enum
+import time
 
 from collections import namedtuple
 from rich.table import Table
-from rich.console import Console
+from rich.console import Console, ConsoleOptions, RenderResult
 from rich.text import Text
+from rich.style import Style
 
 from . import wmata_requests
-from . import colors
+from . import CONSOLE
 
 STATION_LIST = None
 
 
-code_tuple = namedtuple('StationCodeTuple', ['color', 'name'])
+code_tuple = namedtuple('StationCodeTuple', ['style', 'name'])
+base_style = Style(color='bright_white', bold=True)
 
 
 @enum.unique
 class StationCode(enum.Enum):
-    GR = code_tuple(colors.WHITE_GREEN_BACKGROUND, 'Green')
-    BL = code_tuple(colors.WHITE_BLUE_BACKGROUND, 'Blue')
-    OR = code_tuple(colors.WHITE_ORANGE_BACKGROUND, 'Orange')
-    RD = code_tuple(colors.WHITE_RED_BACKGROUND, 'Red')
-    SV = code_tuple(colors.WHITE_GREY_BACKGROUND, 'Silver')
-    YL = code_tuple(colors.WHITE_YELLOW_BACKGROUND, 'Yellow')
+    GR = code_tuple(base_style + Style(bgcolor='green'), 'Green')
+    BL = code_tuple(base_style + Style(bgcolor='bright_blue'), 'Blue')
+    OR = code_tuple(base_style + Style(bgcolor='dark_orange'), 'Orange')
+    RD = code_tuple(base_style + Style(bgcolor='bright_red'), 'Red')
+    SV = code_tuple(base_style + Style(bgcolor='grey50'), 'Silver')
+    YL = code_tuple(base_style + Style(bgcolor='bright_yellow'), 'Yellow')
 
 
 '''
@@ -56,7 +59,7 @@ class NextTrain(object):
 
     @property
     def as_row(self):
-        return [Text.from_ansi(self.Line.value.color(self.Line.name)), Text.from_ansi(self.Line.value.color(self.Car)), self.DestinationName, self.Min]
+        return [Text(self.Line.name, style=self.Line.value.style), Text(self.Car, style=self.Line.value.style), self.DestinationName, self.Min]
 
 
 @dataclasses.dataclass
@@ -67,6 +70,15 @@ class NextTrainList(object):
         return iter(self.next_trains)
 
     def __str__(self):
+
+        with CONSOLE.capture() as capture:
+            CONSOLE.print(self)
+
+        return capture.get()
+
+    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
+        str_time = time.strftime('%H:%M:%S %Y-%m-%d')
+        yield f'Refreshed: {str_time}'
         table = Table(show_header=True)
         table.add_column("LN", justify='center')
         table.add_column("CAR", justify='center')
@@ -76,11 +88,7 @@ class NextTrainList(object):
         for train in self.next_trains:
             table.add_row(*train.as_row)
 
-        console = Console()
-        with console.capture() as capture:
-            console.print(table)
-
-        return capture.get()
+        yield table
 
     @classmethod
     def from_json(cls, trains):
@@ -156,8 +164,10 @@ class Station(object):
 
     @property
     def line_code_str(self):
-        line_code_str = ', '.join(lc.value.color(f'  {lc.value.name}  ') for lc in self.line_codes if lc)
-        return line_code_str
+        with CONSOLE.capture() as capture:
+            line_code_str = Text(', ').join(Text(f'  {lc.value.name}  ', style=lc.value.style) for lc in self.line_codes if lc)
+            CONSOLE.print(line_code_str)
+        return capture.get()
 
     @property
     def line_codes(self):

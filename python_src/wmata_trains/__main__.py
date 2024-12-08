@@ -1,8 +1,10 @@
 import argparse
+import time
 
 from pathlib import Path
+from rich.live import Live
 
-from . import LOGGER
+from . import LOGGER, CONSOLE
 from .logger import add_file_handler
 from .station import get_station_list, get_station_info
 
@@ -40,4 +42,12 @@ elif 'station-info' == pargs.task:
     station = get_station_info(pargs.api_key, pargs.station_code)
     LOGGER.print(station)
     if pargs.next_trains:
-        LOGGER.print(station.next_trains(pargs.api_key))
+        with Live(console=CONSOLE, auto_refresh=False) as live:
+            while True:
+                next_trains = station.next_trains(pargs.api_key)
+                # Live console
+                live.update(next_trains)
+                live.refresh()
+                # Log file
+                LOGGER.debug(next_trains)
+                time.sleep(30)
